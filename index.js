@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const user = require('./userConfig');
-const { lagou } = user;
+const { lagou: lagouUser, job51: job51User } = user;
 
-const main = async () => {
+const lagou = async () => {
   const browser = await puppeteer.launch({
     // 是否显示浏览器
     headless: false,
@@ -19,8 +19,8 @@ const main = async () => {
   await page.goto('https://passport.lagou.com/login/login.html');
   // await page.goto(`https://www.baidu.com`);
   // 登录
-  await page.type('body > section > div.left_area.fl > div:nth-child(2) > form > div:nth-child(1) > input', lagou.username);
-  await page.type('body > section > div.left_area.fl > div:nth-child(2) > form > div:nth-child(2) > input', lagou.password);
+  await page.type('body > section > div.left_area.fl > div:nth-child(2) > form > div:nth-child(1) > input', lagouUser.username);
+  await page.type('body > section > div.left_area.fl > div:nth-child(2) > form > div:nth-child(2) > input', lagouUser.password);
   await page.click('body > section > div.left_area.fl > div:nth-child(2) > form > div.input_item.btn_group.clearfix > input');
   // await page.waitForNavigation();
 
@@ -31,9 +31,8 @@ const main = async () => {
 
   async function delivery() {
 
-
     await page.goto(`https://www.lagou.com/jobs/list_${encodeURI('web前端')}?px=new&city=${encodeURI('广州')}#order`);
-    // 等待公司列表元素加载
+    // 等待招聘列表元素加载
     await page.waitForSelector('#s_position_list > .item_con_list > li');
 
     // 获取工作信息
@@ -77,30 +76,36 @@ const main = async () => {
     }
 
     const jobId = getJobLink(jobs);
+
     // 根据id进入招聘详情页
     await page.goto(`https://www.lagou.com/jobs/${jobId}.html`);
     // 点击投递
     await page.click('.resume-deliver > a');
+
     // 检查投递状态
     const haveDelivery = await page.$eval('.resume-deliver > a', (deliveryBtn) => {
       return deliveryBtn.innerText === '已投递';
     });
+
     // 已投递则记录id并退出
+    console.log(`是否已投递：${haveDelivery}`);
     if (haveDelivery) {
       deliveryCompany.push(jobId);
       return;
     }
-    console.log(haveDelivery);
 
     // 检查是否达到投递上限
     const deliveryMax = await page.$eval('#upperLimit > table > tbody > tr:nth-child(2) > td > a.btn_upper', (addDeliveryNumBtn) => {
-      return true;
+      if (addDeliveryNumBtn.innerText === '提升投递次数') {
+        return true;
+      }
+      return false;
     })
       .catch((error) => {
         return false;
       });
     console.log(deliveryMax, 'deliveryMax');
-    deliveryLimit = deliveryMax;
+    if (deliveryMax) deliveryLimit = true;
 
     // 确定投递吗
     await page.click('#delayConfirmDeliver').catch(() => { });
@@ -120,24 +125,82 @@ const main = async () => {
     num++;
   }
 
-  // jobs.filter((job) => {
-  //   if (job.title.indexOf('java') !== -1) {
-  //     return false;
-  //   }
-  //   return true;
-  // })
-  // .forEach(async (job) => {
-  //   await page.goto(`https://www.lagou.com/jobs/${job.id}.html`);
-  //   const haveDelivery = page.$eval('.resume-deliver > a', (deliveryBtn) => {
-  //     return deliveryBtn.innerText;
-  //   });
-  // })
-
-
-
-  console.log(jobs);
-
   // await browser.close();
 }
 
-main().catch(error => { console.log('err', error) });
+
+
+
+// 51job
+const job51 = async () => {
+  const browser = await puppeteer.launch({
+    headless: false,
+    slowMo: 100
+  });
+
+  const page = await browser.newPage();
+
+  const deliveryPageTotal = 10;
+
+  page.setViewport({
+    width: 1376,
+    height: 768,
+  });
+
+  await page.goto('http://www.51job.com/');
+
+  // 登录
+  await page.click('body > div.content > div > div.ubox > div.sml.e_icon.radius_5 > div.abut_box > span.abut.showLogin');
+  await page.type('#loginname', job51User.username);
+  await page.type('#password', job51User.password);
+  await page.click('#login_btn');
+
+  await page.waitForNavigation();
+
+  // 投递
+  // pagination 页数
+  async function delivery(pagination) {
+    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,web%25E5%2589%258D%25E7%25AB%25AF,2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=0&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
+    await page.goto(pageLink);
+
+    await page.waitForSelector('#resultList > .el > .t1 > span > a');
+
+    // 获取过滤后的招聘列表
+    const jobs = await page.$$eval('#resultList > .el > .t1 > span > a', (jobList) => {
+      return jobList.map((job) => {
+        let title = job.getAttribute('title').toLowerCase();
+        let link = job.getAttribute('href');
+        return {
+          title,
+          link
+        };
+      })
+        .filter((job) => {
+          let { title } = job;
+          if (/java|php|学徒|设计|实习|五险|助理/.test(title)) return false;
+          return true;
+        });
+    });
+
+    // 投递简历
+    for (let i = 0; i < jobs.length; i++) {
+      let { link } = jobs[i];
+      await page.goto(link);
+      await page.waitForSelector('#app_ck');
+      await page.click('#app_ck');
+      await page.waitFor(1000);
+      console.log(`投递完毕，当前第${i + 1}份招聘信息`);
+    }
+
+  }
+
+  // 投递多少页
+  for (let i = 1; i < deliveryPageTotal; i++) {
+    console.log(`第${i}页`);
+    await delivery(i);
+  }
+
+}
+
+// lagou().catch(error => { console.log('err', error) });
+job51().catch(error => { console.log('err', error) });
