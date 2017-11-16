@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const user = require('./userConfig');
 const { lagou: lagouUser, job51: job51User } = user;
 
-const lagou = async () => {
+const lagou = async (keyword) => {
   const browser = await puppeteer.launch({
     // 是否显示浏览器
     headless: false,
@@ -26,12 +26,13 @@ const lagou = async () => {
 
   // 记录以及投递的公司
   const deliveryCompany = [];
-  // 是否达到投递上限
-  let deliveryLimit = false;
+
+  // 是否可以投递
+  let canDelivery = true;
 
   async function delivery() {
 
-    await page.goto(`https://www.lagou.com/jobs/list_${encodeURI('web前端')}?px=new&city=${encodeURI('广州')}#order`);
+    await page.goto(`https://www.lagou.com/jobs/list_${encodeURI(keyword)}?px=new&city=${encodeURI('广州')}#order`);
     // 等待招聘列表元素加载
     await page.waitForSelector('#s_position_list > .item_con_list > li');
 
@@ -94,18 +95,7 @@ const lagou = async () => {
       return;
     }
 
-    // 检查是否达到投递上限
-    const deliveryMax = await page.$eval('#upperLimit > table > tbody > tr:nth-child(2) > td > a.btn_upper', (addDeliveryNumBtn) => {
-      if (addDeliveryNumBtn.innerText === '提升投递次数') {
-        return true;
-      }
-      return false;
-    })
-      .catch((error) => {
-        return false;
-      });
-    console.log(deliveryMax, 'deliveryMax');
-    if (deliveryMax) deliveryLimit = true;
+
 
     // 确定投递吗
     await page.click('#delayConfirmDeliver').catch(() => { });
@@ -113,16 +103,31 @@ const lagou = async () => {
     await page.click('#knowed').catch(() => { });
     // 投递失败确认
     await page.click('#uploadFile > table > tbody > tr:nth-child(2) > td > a').catch(() => { });
+
+    // 检查是否达到投递上限
+    const deliveryMax = await page.$eval('#upperLimit > table > tbody > tr:nth-child(1) > td > h4 > i', (deliveryNum) => {
+      if (deliveryNum.innerText === '12') {
+        return true;
+      }
+      return false;
+    })
+      .catch((error) => {
+        return false;
+      });
+    console.log(deliveryMax, '已达到投递上限');
+    if (deliveryMax) canDelivery = false;
+
     // await page.waitForNavigation();
+
     // 等待2秒
     await page.waitFor(2000);
   }
 
-  let num = 0;
-  while (!deliveryLimit) {
+  let count = 0;
+  while (canDelivery) {
     await delivery();
-    console.log(num);
-    num++;
+    console.log(count);
+    count++;
   }
 
   // await browser.close();
@@ -132,7 +137,7 @@ const lagou = async () => {
 
 
 // 51job
-const job51 = async () => {
+const job51 = async (keyword) => {
   const browser = await puppeteer.launch({
     headless: false,
     slowMo: 100
@@ -140,6 +145,7 @@ const job51 = async () => {
 
   const page = await browser.newPage();
 
+  // 投递页数
   const deliveryPageTotal = 10;
 
   page.setViewport({
@@ -160,7 +166,7 @@ const job51 = async () => {
   // 投递
   // pagination 页数
   async function delivery(pagination) {
-    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,web%25E5%2589%258D%25E7%25AB%25AF,2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=0&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
+    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,${encodeURI(encodeURI(keyword))},2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=0&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
     await page.goto(pageLink);
 
     await page.waitForSelector('#resultList > .el > .t1 > span > a');
@@ -177,7 +183,7 @@ const job51 = async () => {
       })
         .filter((job) => {
           let { title } = job;
-          if (/java|php|学徒|设计|实习|五险|助理/.test(title)) return false;
+          if (/java|php|ios|c#|net|as3|后端|学徒|设计|实习|五险|助理|讲师|零基础|专员/.test(title)) return false;
           return true;
         });
     });
@@ -202,5 +208,5 @@ const job51 = async () => {
 
 }
 
-// lagou().catch(error => { console.log('err', error) });
-job51().catch(error => { console.log('err', error) });
+// lagou('web前端').catch(error => { console.log('err', error) });
+job51('web前端开发').catch(error => { console.log('err', error) });
