@@ -137,7 +137,8 @@ const lagou = async (keyword) => {
 
 
 // 51job
-const job51 = async (keyword) => {
+// order: 0为智能排序；1为最新排序
+const job51 = async (keyword, order) => {
   const browser = await puppeteer.launch({
     headless: false,
     slowMo: 100
@@ -166,7 +167,7 @@ const job51 = async (keyword) => {
   // 投递
   // pagination 页数
   async function delivery(pagination) {
-    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,${encodeURI(encodeURI(keyword))},2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=0&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
+    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,${encodeURI(encodeURI(keyword))},2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=${order}&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
     await page.goto(pageLink);
 
     await page.waitForSelector('#resultList > .el > .t1 > span > a');
@@ -208,5 +209,5 @@ const job51 = async (keyword) => {
 
 }
 
-// lagou('web前端').catch(error => { console.log('err', error) });
-job51('web前端开发').catch(error => { console.log('err', error) });
+lagou('web前端').catch(error => { console.log('err', error) });
+// job51('web前端开发', 1).catch(error => { console.log('err', error) });
