@@ -184,7 +184,7 @@ const job51 = async (keyword, order) => {
       })
         .filter((job) => {
           let { title } = job;
-          if (/java|php|ios|c#|net|as3|后端|学徒|设计|实习|五险|助理|讲师|零基础|专员/.test(title)) return false;
+          if (/java|php|ios|android|c#|net|as3|后端|安卓|测试|学徒|设计|实习|五险|助理|讲师|零基础|专员/.test(title)) return false;
           return true;
         });
     });
@@ -202,12 +202,12 @@ const job51 = async (keyword, order) => {
   }
 
   // 投递多少页
-  for (let i = 1; i < deliveryPageTotal; i++) {
+  for (let i = 0; i < deliveryPageTotal; i++) {
     console.log(`第${i}页`);
     await delivery(i);
   }
 
 }
 
-lagou('web前端').catch(error => { console.log('err', error) });
-// job51('web前端开发', 1).catch(error => { console.log('err', error) });
+// lagou('web前端').catch(error => { console.log('err', error) });
+job51('web前端开发', 1).catch(error => { console.log('err', error) });
