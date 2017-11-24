@@ -24,7 +24,7 @@ const lagou = async (keyword) => {
   await page.click('body > section > div.left_area.fl > div:nth-child(2) > form > div.input_item.btn_group.clearfix > input');
   // await page.waitForNavigation();
 
-  // 记录以及投递的公司
+  // 记录已经投递的公司
   const deliveryCompany = [];
 
   // 是否可以投递
@@ -130,7 +130,7 @@ const lagou = async (keyword) => {
     count++;
   }
 
-  // await browser.close();
+  await browser.close();
 }
 
 
@@ -140,7 +140,7 @@ const lagou = async (keyword) => {
 // order: 0为智能排序；1为最新排序
 const job51 = async (keyword, order) => {
   const browser = await puppeteer.launch({
-    headless: false,
+    // headless: false,
     slowMo: 100
   });
 
@@ -167,7 +167,8 @@ const job51 = async (keyword, order) => {
   // 投递
   // pagination 页数
   async function delivery(pagination) {
-    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,${encodeURI(encodeURI(keyword))},2,${pagination}.html?lang=c&stype=&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&providesalary=99&lonlat=0%2C0&radius=-1&ord_field=${order}&confirmdate=9&fromType=&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
+    const pageLink = `http://search.51job.com/list/030200,000000,0000,00,9,99,${encodeURI(encodeURI(keyword))},2,${pagination}.html?lang=c&stype=1&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&lonlat=0%2C0&radius=-1&ord_field=${order}&confirmdate=9&fromType=1&dibiaoid=0&address=&line=&specialarea=00&from=&welfare=`;
+
     await page.goto(pageLink);
 
     await page.waitForSelector('#resultList > .el > .t1 > span > a');
@@ -202,12 +203,15 @@ const job51 = async (keyword, order) => {
   }
 
   // 投递多少页
-  for (let i = 0; i < deliveryPageTotal; i++) {
+  for (let i = 1; i < deliveryPageTotal; i++) {
     console.log(`第${i}页`);
     await delivery(i);
   }
 
+  await browser.close();
+
 }
 
 // lagou('web前端').catch(error => { console.log('err', error) });
-job51('web前端开发', 1).catch(error => { console.log('err', error) });
+job51('web前端开发', 0).catch(error => { console.log('err', error) });
+
