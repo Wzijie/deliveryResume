@@ -149,6 +149,9 @@ const job51 = async (keyword, order) => {
   // 投递页数
   const deliveryPageTotal = 10;
 
+  // 累计投递成功次数
+  let deliveryCount = 0;
+
   page.setViewport({
     width: 1376,
     height: 768,
@@ -195,9 +198,11 @@ const job51 = async (keyword, order) => {
       let { link } = jobs[i];
       await page.goto(link);
       await page.waitForSelector('#app_ck');
+      const deliverable = await page.$eval('#app_ck', deliveryBtn => deliveryBtn.innerText === '申请职位');
+      if (deliverable) deliveryCount++;
       await page.click('#app_ck');
       await page.waitFor(1000);
-      console.log(`投递完毕，当前第${i + 1}份招聘信息`);
+      console.log(`投递完毕，当前第${pagination}页，第${i + 1}份招聘信息，累计投递${deliveryCount}份。`);
     }
 
   }
@@ -213,5 +218,5 @@ const job51 = async (keyword, order) => {
 }
 
 // lagou('web前端').catch(error => { console.log('err', error) });
-job51('web前端开发', 0).catch(error => { console.log('err', error) });
+job51('web前端', 0).catch(error => { console.log('err', error) });
 
